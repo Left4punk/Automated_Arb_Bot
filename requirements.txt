@@ -1,0 +1,13 @@
+pandas>=1.3
+requests>=2.25
+matplotlib>=3.5
+seaborn>=0.11andas>=1.3
+requests>=2.25
+matplotlib>=3.5
+seaborn>=0.11
+schedule
+streamlit
+streamlit-autorefresh
+matplotlib
+numpy
+notebook
