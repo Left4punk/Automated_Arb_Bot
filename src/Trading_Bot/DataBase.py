@@ -25,8 +25,6 @@ else:
     # If no live data exists yet, initialize an empty DataFrame with same structure
     df_live = pd.DataFrame(columns=df_backtest.columns)
 
-print (df_live)
-sys.exit()
 # === Combine both datasets into a single DataFrame ===
 combined_df = pd.concat([df_backtest, df_live], ignore_index=True)
 

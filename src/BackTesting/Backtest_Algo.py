@@ -1,11 +1,12 @@
 import pandas as pd
 import os
 import config
+from datetime import timedelta
 
 class FundingArbitrageBacktest:
     def __init__(self, csv_file, asset_name=config.asset_name, btc_position=config.btc_position, maker_fee_rate=config.position_fee, compound=config.use_compounding):
         self.csv_file = csv_file
-        self.asset_name = asset_name  # BTC, ETH, SOL
+        self.asset_name = asset_name
         self.btc_position = btc_position
         self.initial_btc = btc_position
         self.maker_fee_rate = maker_fee_rate
@@ -115,6 +116,19 @@ class FundingArbitrageBacktest:
                     self.df.loc[i, "trade_id"] = trade_id
                     self.df.loc[i, "profit"] = funding_income - round_fee
 
+            elif config.enable_idle_lending:
+                # Apply passive yield for idle lending
+                daily_yield = (1 + config.idle_lending_apy) ** (1 / 365) - 1
+                period_yield = daily_yield / 3  # Each funding is 8h = 1/3 day
+                passive_profit = btc_balance * period_yield * price  # Yield in USDT
+                if self.compound:
+                    btc_balance += passive_profit / price
+                self.df.loc[i, "position"] = "lending"
+                self.df.loc[i, "trade_id"] = None
+                self.df.loc[i, "fees_paid"] = 0
+                self.df.loc[i, "profit"] = passive_profit
+                self.df.loc[i, "btc_balance"] = btc_balance
+
         self.df_results = pd.DataFrame(self.results)
         if not self.df_results.empty:
             self.df_results["cumulative_profit"] = self.df_results["net_profit"].cumsum()
@@ -135,7 +149,7 @@ class FundingArbitrageBacktest:
         return {
             "Asset": self.asset_name,
             "Total net profit (USDT)": round(total_net, 2),
-            "APY Estimated (BTC-based %)": round(apy_btc, 2),
+            rf"APY Estimated ({self.asset_name}-based %)": round(apy_btc, 2),
             "Number of operations": len(self.df_results),
             "Most profitable streak (USDT)": round(self.df_results["net_profit"].max(), 2),
             "Least profitable streak (USDT)": round(self.df_results["net_profit"].min(), 2),
